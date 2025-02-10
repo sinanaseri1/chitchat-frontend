@@ -14,7 +14,7 @@ const Login = () => {
     setDisabled(true); // Disable the button while submitting
     setErrorMessage(null); // Reset any previous error message
 
-    const username = e.target.username.value;
+    const usernameOrEmail = e.target.usernameOrEmail.value; // Get the input value (either username or email)
     const password = e.target.password.value;
 
     try {
@@ -24,7 +24,7 @@ const Login = () => {
         headers: {
           "Content-Type": "application/json", // Make sure to send JSON
         },
-        body: JSON.stringify({ username, password }), // Send the form data
+        body: JSON.stringify({ usernameOrEmail, password }), // Send the form data
         credentials: "include", // Ensure cookies are sent with the request
       });
 
@@ -66,23 +66,21 @@ const Login = () => {
           className="bg-white p-8 rounded-lg shadow-lg w-96 max-w-md flex flex-col items-center"
         >
           <h2 className="text-2xl font-bold text-center text-[#333333] mb-6">
-            Come on in!
+            Lets ChitChat!
           </h2>
 
           <div className="mb-4 w-full">
             <label
-              htmlFor="username"
+              htmlFor="usernameOrEmail"
               className="block text-[#333333] text-lg font-medium mb-2"
-            >
-              Username
-            </label>
+            ></label>
             <input
-              id="username"
-              name="username"
+              id="usernameOrEmail"
+              name="usernameOrEmail"
               type="text"
               required
               className="w-full px-4 py-3 border border-[#ddd] rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB439] bg-[#FAFAFA] text-[#333333] placeholder-[#999] transition duration-200"
-              placeholder="Enter your username"
+              placeholder="Enter your username or email"
             />
           </div>
 
@@ -90,9 +88,7 @@ const Login = () => {
             <label
               htmlFor="password"
               className="block text-[#333333] text-lg font-medium mb-2"
-            >
-              Password
-            </label>
+            ></label>
             <input
               id="password"
               name="password"
@@ -133,4 +129,3 @@ const Login = () => {
 };
 
 export default Login;
-

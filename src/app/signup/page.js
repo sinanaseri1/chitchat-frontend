@@ -1,3 +1,4 @@
+
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation"; // Import useRouter hook
@@ -19,9 +20,10 @@ const Signup = () => {
     setErrorMessage(null);
 
     const username = e.target.username.value;
+    const email = e.target.email.value;
     const password = e.target.password.value;
 
-    // Check if the password is valid
+    // Check if the email and password are valid
     if (!passwordRegex.test(password)) {
       setErrorMessage(
         "Password must contain at least one digit, one lowercase letter, one uppercase letter, one special character, and be between 8 and 16 characters long."
@@ -36,9 +38,8 @@ const Signup = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          include: "credentials"
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, email, password }),
       });
 
       const data = await response.json();
@@ -76,19 +77,20 @@ const Signup = () => {
           className="bg-white p-8 rounded-lg shadow-lg w-96 max-w-md flex flex-col items-center"
         >
           <h2 className="text-2xl font-bold text-center text-[#333333] mb-6">
-            Create an account
+            Join the ChitChat crew!
           </h2>
 
+          {/* Email Input */}
           <div className="mb-4 w-full">
             <label
-              htmlFor="username"
+              htmlFor="email"
               className="block text-[#333333] text-lg font-medium mb-2"
             >
               Email
             </label>
             <input
-              id="username"
-              name="username"
+              id="email"
+              name="email"
               type="email"
               required
               className="w-full px-4 py-3 border border-[#ddd] rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB439] bg-[#FAFAFA] text-[#333333] placeholder-[#999] transition duration-200"
@@ -96,6 +98,25 @@ const Signup = () => {
             />
           </div>
 
+          {/* Username Input */}
+          <div className="mb-4 w-full">
+            <label
+              htmlFor="username"
+              className="block text-[#333333] text-lg font-medium mb-2"
+            >
+              Username
+            </label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              required
+              className="w-full px-4 py-3 border border-[#ddd] rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB439] bg-[#FAFAFA] text-[#333333] placeholder-[#999] transition duration-200"
+              placeholder="Enter your username"
+            />
+          </div>
+
+          {/* Password Input */}
           <div className="mb-6 w-full">
             <label
               htmlFor="password"
@@ -113,10 +134,12 @@ const Signup = () => {
             />
           </div>
 
+          {/* Error Message */}
           {errorMessage && (
             <div className="text-red-600 text-sm mb-4">{errorMessage}</div>
           )}
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={disabled}
@@ -127,6 +150,7 @@ const Signup = () => {
             {disabled ? "Signing up..." : "Sign up"}
           </button>
 
+          {/* Login Link */}
           <div className="mt-4 text-center">
             <span className="text-[#333333] text-sm">
               Already have an account?
