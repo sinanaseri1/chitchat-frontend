@@ -1,35 +1,19 @@
-import React, { useState } from "react"
+import React from "react";
+import Stripe from "./Stripe";
 
-import Stripe from "./Stripe"
-
-function Hamburger() {
-
- const [isActive, setIsActive] = useState(false)
-
-  function doClick() {
-    if(isActive) {
-      document.getElementById('stripe-0').classList.remove('stripe-0-active')
-      document.getElementById('stripe-1').classList.remove('stripe-1-active')
-      document.getElementById('stripe-2').classList.remove('stripe-2-active')
-      setIsActive(false)
-    } else {
-      document.getElementById('stripe-0').classList.add('stripe-0-active')
-      document.getElementById('stripe-1').classList.add('stripe-1-active')
-      document.getElementById('stripe-2').classList.add('stripe-2-active')
-      setIsActive(true)
-    }
-  }
+function Hamburger({ menuOpen, setMenuOpen }) {
+  const handleClick = () => {
+    setMenuOpen(!menuOpen);
+  };
 
   return (
-    <button
-      className='flex flex-col gap-[5px]'
-      onClick={doClick}
-    >
-        <Stripe id={0}/>
-        <Stripe id={1}/>
-        <Stripe id={2}/>
+    <button className="flex flex-col gap-[5px]" onClick={handleClick}>
+      {/* Pass an id and "isActive" to each Stripe */}
+      <Stripe id={0} isActive={menuOpen} />
+      <Stripe id={1} isActive={menuOpen} />
+      <Stripe id={2} isActive={menuOpen} />
     </button>
-  )
+  );
 }
 
 export default Hamburger;

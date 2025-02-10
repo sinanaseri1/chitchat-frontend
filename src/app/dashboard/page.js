@@ -1,5 +1,4 @@
 "use client"; // For Next.js App Router usage
-
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -10,27 +9,27 @@ import Menu from "@/components/dashboard/hamburger/Menu/Menu";
 
 export default function DashboardPage() {
   const router = useRouter();
+  
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+
+  // IMPORTANT: This state tracks the burger menu's open/close
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Fetch dashboard data (User info)
   const fetchDashboardData = async () => {
     try {
       const response = await fetch("http://localhost:3001/validate", {
         method: "GET",
-      credentials: "include"
-      },
-      
-        );
-
+        credentials: "include",
+      });
       if (response.ok) {
         const data = await response.json();
-        setUserData(data); // Store the user data to render on the page
-        setLoading(false); // Set loading to false once the data is fetched
+        setUserData(data);
+        setLoading(false);
       } else {
-        console.log(response)
         setError("User not authenticated");
         setLoading(false);
       }
@@ -40,27 +39,17 @@ export default function DashboardPage() {
     }
   };
 
-  // Call the function on component mount
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-
     if (!token) {
-      router.push("/login"); // Redirect to login if not authenticated
+      router.push("/login");
     } else {
-      fetchDashboardData(); // Fetch dashboard data when user is authenticated
+      fetchDashboardData();
     }
   }, [router]);
 
-  // Loading or error state handling
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>{error}</div>;
-  }
-
-  // State to control when the modal is visible
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
 
   // Dummy list of friends for demonstration
   const dummyFriends = [
@@ -74,13 +63,11 @@ export default function DashboardPage() {
       {/* Top Navbar */}
       <Navbar />
 
-      {/* Main content area: Sidebar + Chat Area */}
+      {/* Main Content (Sidebar + Chat Area) */}
       <div className="flex flex-1">
         {/* Sidebar */}
         <div className="w-80 border-r border-[#FDB439] p-6 flex flex-col justify-between">
-          {/* Top section: Create New Group Chat button & conversation list */}
           <div>
-            {/* Modified button to open the modal */}
             <button
               className="w-full bg-[#FDB439] text-white py-3 rounded hover:bg-opacity-90 text-lg"
               onClick={() => setShowNewChatModal(true)}
@@ -99,11 +86,9 @@ export default function DashboardPage() {
               <div className="p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg">
                 Chat 3
               </div>
-              {/* Additional conversation items... */}
             </div>
           </div>
 
-          {/* Bottom section: Search User input */}
           <div className="mt-6">
             <input
               type="text"
@@ -118,30 +103,35 @@ export default function DashboardPage() {
           {/* Chat Header */}
           <div className="flex justify-between items-center p-6 pr-24 border-b border-t border-[#FDB439]">
             <h2 className="text-[#FDB439] font-semibold text-xl">Chat Title</h2>
-            <Hamburger />
+            
+            {/* Pass `menuOpen` and `setMenuOpen` to Hamburger */}
+            <Hamburger
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
+            />
           </div>
 
           {/* Chat Messages */}
-
           <div className="flex-1 p-0 overflow-y-auto space-y-6 bg-white relative">
-            
-						<div className="flex justify-end">
-								<Menu />
-						</div>
+            {/* Conditionally render the Menu if `menuOpen` is true */}
+            {menuOpen && (
+              <div className="flex justify-end">
+                <Menu />
+              </div>
+            )}
 
-						<div className='p-6'>
-
-            {/* Received message (white background with accent border and text) */}
-            <div className="max-w-xs p-3 rounded-xl border border-[#FDB439] text-[#FDB439] text-lg">
-              Hello, how are you?
-            </div>
-            {/* Sent message (#FDB439 background with white text) */}
-            <div className="max-w-xs ml-auto bg-[#FDB439] text-white p-3 rounded-xl text-lg">
-              I am fine, thanks!
+            {/* Example messages */}
+            <div className="p-6">
+              {/* Received message */}
+              <div className="max-w-xs p-3 rounded-xl border border-[#FDB439] text-[#FDB439] text-lg">
+                Hello, how are you?
+              </div>
+              {/* Sent message */}
+              <div className="max-w-xs ml-auto bg-[#FDB439] text-white p-3 rounded-xl text-lg">
+                I am fine, thanks!
+              </div>
             </div>
           </div>
-
-					</div>
 
           {/* Chat Input */}
           <div className="p-6 border-t border-[#FDB439] flex">
