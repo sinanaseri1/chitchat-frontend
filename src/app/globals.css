@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.stripe-0-active {
+    rotate: 45deg;
+    translate: 0 9px;
+    transition: 300ms;
+}
+.stripe-1-active {
+    opacity: 0;
+    transition: 300ms;
+}
+.stripe-2-active {
+    rotate: -45deg;
+    translate: 0 -9px;
+    transition: 300ms;
+}
