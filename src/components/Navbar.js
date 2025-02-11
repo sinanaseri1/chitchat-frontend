@@ -55,6 +55,11 @@ function Navbar() {
     setIsModalOpen(false); // Close the modal after the action
   };
   
+  const handleNoDeletion = () => {
+    setIsModalOpen(false); // Close the modal when "No" is clicked
+    setIsDropdownOpen(false); // Close the dropdown when "No" is clicked
+    router.push("/dashboard"); // Redirect to the dashboard after closing modal
+  };
 
   return (
     <nav className="bg-[#FDB439] px-6 py-4 flex items-center justify-between">
@@ -96,7 +101,7 @@ function Navbar() {
               <h2 className="text-xl font-semibold mb-4">Are you sure you want to leave ChitChat?</h2>
               <div className="flex justify-end space-x-4">
                 <button
-                  onClick={() => setIsModalOpen(false)}  // Close the modal on No
+                  onClick={handleNoDeletion}  // Close the modal, dropdown, and go to the dashboard
                   className="px-4 py-2 bg-gray-500 text-white rounded-md"
                 >
                   No
