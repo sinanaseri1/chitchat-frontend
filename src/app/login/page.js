@@ -1,3 +1,4 @@
+
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -34,6 +35,9 @@ const Login = () => {
       if (response.ok) {
         // Store the token securely (localStorage for this example)
         localStorage.setItem("authToken", data.token); // Store token in localStorage (or cookie)
+        
+        // Store the username
+        localStorage.setItem("username", usernameOrEmail); // Store username in localStorage
 
         // Redirect to the dashboard after successful login
         router.push("/dashboard");
