@@ -15,17 +15,19 @@ import { searchUsersByUsername } from "@/services/searchService";
 export default function DashboardPage() {
   const router = useRouter();
 
-  // States for user data, loading, errors, modal, hamburger, and friend list
+  // State for authenticated user, loading and error handling
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Modal and hamburger states
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Search states
+  // Friend list and search states
+  const [friends, setFriends] = useState([]); // Real users from database
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [friends, setFriends] = useState([]); // real users from the DB
 
   // Socket and chat states
   const [socket, setSocket] = useState(null);
@@ -35,7 +37,7 @@ export default function DashboardPage() {
   // Selected friend for private messaging
   const [selectedFriend, setSelectedFriend] = useState(null);
 
-  // Fetch dashboard data (User info)
+  // --- Fetch authenticated user via /validate ---
   const fetchDashboardData = async () => {
     try {
       const response = await fetch("http://localhost:3001/validate", {
@@ -44,7 +46,7 @@ export default function DashboardPage() {
       });
       if (response.ok) {
         const data = await response.json();
-        console.log("User data fetched:", data);
+        console.log("Validated user data:", data);
         setUserData(data);
         setLoading(false);
       } else {
@@ -52,33 +54,12 @@ export default function DashboardPage() {
         setLoading(false);
       }
     } catch (err) {
-      console.error("Error fetching dashboard:", err);
-      setError("Error fetching dashboard");
+      console.error("Error fetching dashboard data:", err);
+      setError("Error fetching dashboard data");
       setLoading(false);
     }
   };
 
-  // Fetch all friends from the backend (GET /users?username=)
-  const fetchFriends = async () => {
-    try {
-      const res = await fetch("http://localhost:3001/users?username=", {
-        method: "GET",
-        credentials: "include",
-      });
-      const data = await res.json();
-      console.log("Fetched friends:", data.users);
-      // Exclude the current user from the friend list
-      const allFriends =
-        userData && data.users
-          ? data.users.filter((user) => user._id !== userData._id)
-          : data.users;
-      setFriends(allFriends);
-    } catch (err) {
-      console.error("Error fetching friends:", err);
-    }
-  };
-
-  // Check authentication and fetch dashboard data on mount
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (!token) {
@@ -88,26 +69,45 @@ export default function DashboardPage() {
     }
   }, [router]);
 
-  // When userData is available, fetch the friend list
+  // --- Fetch friend list from backend ---
+  // This endpoint should return all users (with _id, username, email, etc.)
+  const fetchFriends = async () => {
+    try {
+      const res = await fetch("http://localhost:3001/users?username=", {
+        method: "GET",
+        credentials: "include",
+      });
+      const data = await res.json();
+      console.log("Fetched friends:", data.users);
+      // Filter out the current user
+      const filteredFriends =
+        userData && data.users
+          ? data.users.filter((user) => user._id !== userData._id)
+          : data.users;
+      setFriends(filteredFriends);
+    } catch (err) {
+      console.error("Error fetching friends:", err);
+    }
+  };
+
   useEffect(() => {
     if (userData) {
       fetchFriends();
     }
   }, [userData]);
 
-  // Initialize Socket.IO connection
+  // --- Initialize Socket.IO ---
   useEffect(() => {
     const newSocket = io("http://localhost:3001", {
       withCredentials: true,
       transports: ["websocket"],
     });
     setSocket(newSocket);
-    console.log("Socket initialized:", newSocket.id);
-
+    console.log("Socket initialized with id:", newSocket.id);
     return () => newSocket.disconnect();
   }, []);
 
-  // Register the current user with the socket once userData is available
+  // --- Register current user with Socket.IO ---
   useEffect(() => {
     if (socket && userData && userData._id) {
       socket.emit("register", userData._id);
@@ -115,24 +115,23 @@ export default function DashboardPage() {
     }
   }, [socket, userData]);
 
-  // Listen for incoming private messages
+  // --- Listen for incoming private messages ---
   useEffect(() => {
     if (!socket) return;
-
     socket.on("privateMessage", (msg) => {
-      console.log("Received privateMessage:", msg);
+      console.log("Received private message:", msg);
       setMessages((prevMessages) => [...prevMessages, msg]);
     });
-
     return () => {
       socket.off("privateMessage");
     };
   }, [socket]);
 
-  // Handle sending a private message
+  // --- Handle sending a private message ---
   const handleSendMessage = () => {
-    if (!socket || !currentMessage.trim() || !selectedFriend) return;
-    const senderId = userData._id;
+    if (!socket || !currentMessage.trim() || !selectedFriend || !userData)
+      return;
+    const senderId = userData._id; // Now properly set by /validate
     const receiverId = selectedFriend._id;
     console.log(
       "Sending message from",
@@ -147,7 +146,7 @@ export default function DashboardPage() {
       receiverId,
       text: currentMessage,
     });
-    // Optionally add the message locally immediately
+    // Optionally add the message locally for immediate display
     setMessages((prevMessages) => [
       ...prevMessages,
       { senderId, receiverId, text: currentMessage, createdAt: new Date() },
@@ -155,21 +154,19 @@ export default function DashboardPage() {
     setCurrentMessage("");
   };
 
-  // Handle search input changes
+  // --- Handle search input changes ---
   const handleSearch = async (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-
     if (!value.trim()) {
       setSearchResults([]);
       return;
     }
-
     try {
       const results = await searchUsersByUsername(value);
       setSearchResults(results);
     } catch (err) {
-      console.error("Error in search:", err);
+      console.error("Error searching users:", err);
       setSearchResults([]);
     }
   };
@@ -177,7 +174,7 @@ export default function DashboardPage() {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
-  // Filter messages for the current conversation (between current user and selected friend)
+  // --- Filter conversation messages for the selected friend ---
   const currentConversationMessages =
     selectedFriend && userData
       ? messages.filter(
@@ -206,8 +203,6 @@ export default function DashboardPage() {
             >
               + New Group Chat
             </button>
-
-            {/* Friend List */}
             <div className="mt-6 overflow-y-auto space-y-3">
               {searchTerm.trim() === ""
                 ? friends.map((friend) => (
@@ -215,7 +210,7 @@ export default function DashboardPage() {
                       key={friend._id}
                       onClick={() => {
                         setSelectedFriend(friend);
-                        setMessages([]); // clear current conversation when switching
+                        setMessages([]); // clear conversation when switching friends
                       }}
                       className={`p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${
                         selectedFriend && selectedFriend._id === friend._id
@@ -240,8 +235,6 @@ export default function DashboardPage() {
                   ))}
             </div>
           </div>
-
-          {/* Bottom section: Search input */}
           <div className="mt-6">
             <input
               type="text"
