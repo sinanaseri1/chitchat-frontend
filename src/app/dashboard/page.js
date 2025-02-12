@@ -31,6 +31,16 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
 
+  // State for selected friend (for private messaging)
+  const [selectedFriend, setSelectedFriend] = useState(null);
+
+  // Dummy list of friends for demonstration (with id and name)
+  const dummyFriends = [
+    { id: "friend1", name: "Alice" },
+    { id: "friend2", name: "Bob" },
+    { id: "friend3", name: "Charlie" },
+  ];
+
   // Fetch dashboard data (User info)
   const fetchDashboardData = async () => {
     try {
@@ -74,37 +84,43 @@ export default function DashboardPage() {
     return () => newSocket.disconnect();
   }, []);
 
-  // Listen for incoming chat messages
+  // Once userData is available, register the user with the socket
+  useEffect(() => {
+    if (socket && userData && userData._id) {
+      socket.emit("register", userData._id);
+    }
+  }, [socket, userData]);
+
+  // Listen for incoming private messages
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("chat message", (msg) => {
+    socket.on("privateMessage", (msg) => {
       setMessages((prevMessages) => [...prevMessages, msg]);
     });
 
     return () => {
-      socket.off("chat message");
+      socket.off("privateMessage");
     };
   }, [socket]);
 
-  // Function to send a chat message
+  // Handle sending a private message to the selected friend
   const handleSendMessage = () => {
-    if (!socket || !currentMessage.trim()) return;
-    socket.emit("chat message", currentMessage);
-    // Optionally, add your own message locally
-    setMessages((prevMessages) => [...prevMessages, currentMessage]);
+    if (!socket || !currentMessage.trim() || !selectedFriend) return;
+    const senderId = userData._id; // Assume userData contains _id
+    const receiverId = selectedFriend.id;
+    socket.emit("privateMessage", {
+      senderId,
+      receiverId,
+      text: currentMessage,
+    });
+    // Optionally, add your own message to the conversation immediately
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { senderId, receiverId, text: currentMessage, createdAt: new Date() },
+    ]);
     setCurrentMessage("");
   };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
-
-  // Dummy list of friends for demonstration purposes
-  const dummyFriends = [
-    { id: 1, name: "Alice" },
-    { id: 2, name: "Bob" },
-    { id: 3, name: "Charlie" },
-  ];
 
   // Handle search input changes (searching by username)
   const handleSearch = async (e) => {
@@ -126,6 +142,21 @@ export default function DashboardPage() {
     }
   };
 
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
+
+  // Filter messages for conversation between current user and selected friend
+  const currentConversationMessages =
+    selectedFriend && userData
+      ? messages.filter(
+          (msg) =>
+            (msg.senderId === userData._id &&
+              msg.receiverId === selectedFriend.id) ||
+            (msg.senderId === selectedFriend.id &&
+              msg.receiverId === userData._id)
+        )
+      : [];
+
   return (
     <div className="relative flex flex-col w-screen h-screen bg-white">
       {/* Top Navbar */}
@@ -146,15 +177,19 @@ export default function DashboardPage() {
 
             {/* Conversation List */}
             <div className="mt-6 overflow-y-auto space-y-3">
-              <div className="p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg">
-                Chat 1
-              </div>
-              <div className="p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg">
-                Chat 2
-              </div>
-              <div className="p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg">
-                Chat 3
-              </div>
+              {dummyFriends.map((friend) => (
+                <div
+                  key={friend.id}
+                  onClick={() => setSelectedFriend(friend)}
+                  className={`p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${
+                    selectedFriend && selectedFriend.id === friend.id
+                      ? "bg-[#FDB439] text-white"
+                      : ""
+                  }`}
+                >
+                  {friend.name}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -188,7 +223,9 @@ export default function DashboardPage() {
         <div className="flex flex-col flex-1">
           {/* Chat Header */}
           <div className="flex justify-between items-center p-6 pr-24 border-b border-t border-[#FDB439]">
-            <h2 className="text-[#FDB439] font-semibold text-xl">Chat Title</h2>
+            <h2 className="text-[#FDB439] font-semibold text-xl">
+              {selectedFriend ? selectedFriend.name : "Chat Title"}
+            </h2>
             <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
           </div>
 
@@ -200,14 +237,24 @@ export default function DashboardPage() {
               </div>
             )}
             <div className="p-6">
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className="max-w-xs p-3 rounded-xl border border-[#FDB439] text-[#FDB439] text-lg mb-2"
-                >
-                  {msg}
+              {selectedFriend ? (
+                currentConversationMessages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${
+                      msg.senderId === userData._id
+                        ? "ml-auto bg-[#FDB439] text-white"
+                        : "border border-[#FDB439] text-[#FDB439]"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500">
+                  Select a friend to start chatting
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
