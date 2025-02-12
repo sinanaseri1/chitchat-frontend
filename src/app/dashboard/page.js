@@ -15,27 +15,27 @@ import { searchUsersByUsername } from "@/services/searchService";
 export default function DashboardPage() {
   const router = useRouter();
 
-  // States for user data, loading, errors, modal, hamburger
+  // States for user data, loading, errors, modal, hamburger, and friend list
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // States for searching and friend list
+  // Search states
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [friends, setFriends] = useState([]); // real users from the database
+  const [friends, setFriends] = useState([]); // real users from the DB
 
   // Socket and chat states
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
 
-  // State for the selected friend (recipient for private messages)
+  // Selected friend for private messaging
   const [selectedFriend, setSelectedFriend] = useState(null);
 
-  // Fetch user data (from /validate endpoint)
+  // Fetch dashboard data (User info)
   const fetchDashboardData = async () => {
     try {
       const response = await fetch("http://localhost:3001/validate", {
@@ -44,6 +44,7 @@ export default function DashboardPage() {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log("User data fetched:", data);
         setUserData(data);
         setLoading(false);
       } else {
@@ -51,13 +52,13 @@ export default function DashboardPage() {
         setLoading(false);
       }
     } catch (err) {
+      console.error("Error fetching dashboard:", err);
       setError("Error fetching dashboard");
       setLoading(false);
     }
   };
 
-  // Fetch all friends (real users) from the backend.
-  // This assumes your GET /users?username= endpoint returns all users when query is empty.
+  // Fetch all friends from the backend (GET /users?username=)
   const fetchFriends = async () => {
     try {
       const res = await fetch("http://localhost:3001/users?username=", {
@@ -65,7 +66,8 @@ export default function DashboardPage() {
         credentials: "include",
       });
       const data = await res.json();
-      // Exclude the current user from the list (if available)
+      console.log("Fetched friends:", data.users);
+      // Exclude the current user from the friend list
       const allFriends =
         userData && data.users
           ? data.users.filter((user) => user._id !== userData._id)
@@ -95,20 +97,21 @@ export default function DashboardPage() {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    // Replace with your deployed backend URL when ready
     const newSocket = io("http://localhost:3001", {
       withCredentials: true,
       transports: ["websocket"],
     });
     setSocket(newSocket);
+    console.log("Socket initialized:", newSocket.id);
 
     return () => newSocket.disconnect();
   }, []);
 
-  // Once userData is available, register the user with Socket.IO
+  // Register the current user with the socket once userData is available
   useEffect(() => {
     if (socket && userData && userData._id) {
       socket.emit("register", userData._id);
+      console.log("Registered user with socket:", userData._id);
     }
   }, [socket, userData]);
 
@@ -117,6 +120,7 @@ export default function DashboardPage() {
     if (!socket) return;
 
     socket.on("privateMessage", (msg) => {
+      console.log("Received privateMessage:", msg);
       setMessages((prevMessages) => [...prevMessages, msg]);
     });
 
@@ -125,17 +129,25 @@ export default function DashboardPage() {
     };
   }, [socket]);
 
-  // Handle sending a private message to the selected friend
+  // Handle sending a private message
   const handleSendMessage = () => {
     if (!socket || !currentMessage.trim() || !selectedFriend) return;
-    const senderId = userData._id; // Assuming userData contains _id
-    const receiverId = selectedFriend._id; // Use the real user _id from database
+    const senderId = userData._id;
+    const receiverId = selectedFriend._id;
+    console.log(
+      "Sending message from",
+      senderId,
+      "to",
+      receiverId,
+      ":",
+      currentMessage
+    );
     socket.emit("privateMessage", {
       senderId,
       receiverId,
       text: currentMessage,
     });
-    // Optionally add the message locally so it appears immediately
+    // Optionally add the message locally immediately
     setMessages((prevMessages) => [
       ...prevMessages,
       { senderId, receiverId, text: currentMessage, createdAt: new Date() },
@@ -143,12 +155,11 @@ export default function DashboardPage() {
     setCurrentMessage("");
   };
 
-  // Handle search input changes (searching by username)
+  // Handle search input changes
   const handleSearch = async (e) => {
     const value = e.target.value;
     setSearchTerm(value);
 
-    // If input is empty, clear search results (and optionally, refresh friend list)
     if (!value.trim()) {
       setSearchResults([]);
       return;
@@ -158,7 +169,7 @@ export default function DashboardPage() {
       const results = await searchUsersByUsername(value);
       setSearchResults(results);
     } catch (err) {
-      console.error(err);
+      console.error("Error in search:", err);
       setSearchResults([]);
     }
   };
@@ -166,13 +177,15 @@ export default function DashboardPage() {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
-  // Filter messages to display only those exchanged between the current user and the selected friend
+  // Filter messages for the current conversation (between current user and selected friend)
   const currentConversationMessages =
     selectedFriend && userData
       ? messages.filter(
           (msg) =>
-            (msg.senderId === userData._id && msg.receiverId === selectedFriend._id) ||
-            (msg.senderId === selectedFriend._id && msg.receiverId === userData._id)
+            (msg.senderId === userData._id &&
+              msg.receiverId === selectedFriend._id) ||
+            (msg.senderId === selectedFriend._id &&
+              msg.receiverId === userData._id)
         )
       : [];
 
@@ -185,7 +198,7 @@ export default function DashboardPage() {
       <div className="flex flex-1">
         {/* Sidebar */}
         <div className="w-80 border-r border-[#FDB439] p-6 flex flex-col justify-between">
-          {/* Top section: New Chat button and conversation list */}
+          {/* Top section: New Chat button and friend list */}
           <div>
             <button
               className="w-full bg-[#FDB439] text-white py-3 rounded hover:bg-opacity-90 text-lg"
@@ -202,8 +215,7 @@ export default function DashboardPage() {
                       key={friend._id}
                       onClick={() => {
                         setSelectedFriend(friend);
-                        // Optionally clear the current conversation when switching
-                        setMessages([]);
+                        setMessages([]); // clear current conversation when switching
                       }}
                       className={`p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${
                         selectedFriend && selectedFriend._id === friend._id
@@ -229,7 +241,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Bottom section: Search input & results */}
+          {/* Bottom section: Search input */}
           <div className="mt-6">
             <input
               type="text"
@@ -238,7 +250,6 @@ export default function DashboardPage() {
               value={searchTerm}
               onChange={handleSearch}
             />
-            {/* Optionally, you can display search results here if desired */}
           </div>
         </div>
 
