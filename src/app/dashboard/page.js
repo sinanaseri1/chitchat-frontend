@@ -1,6 +1,8 @@
 "use client"; // For Next.js App Router usage
+
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import io from "socket.io-client";
 
 import Navbar from "../../components/Navbar";
 import Hamburger from "@/components/dashboard/hamburger/Hamburger";
@@ -24,6 +26,11 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
 
+  // Socket and chat states
+  const [socket, setSocket] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [currentMessage, setCurrentMessage] = useState("");
+
   // Fetch dashboard data (User info)
   const fetchDashboardData = async () => {
     try {
@@ -45,6 +52,7 @@ export default function DashboardPage() {
     }
   };
 
+  // Check authentication and fetch user data on mount
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (!token) {
@@ -53,6 +61,40 @@ export default function DashboardPage() {
       fetchDashboardData();
     }
   }, [router]);
+
+  // Initialize Socket.IO connection
+  useEffect(() => {
+    // Replace the URL with your backend endpoint when deployed
+    const newSocket = io("http://localhost:3001", {
+      withCredentials: true,
+      transports: ["websocket"],
+    });
+    setSocket(newSocket);
+
+    return () => newSocket.disconnect();
+  }, []);
+
+  // Listen for incoming chat messages
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("chat message", (msg) => {
+      setMessages((prevMessages) => [...prevMessages, msg]);
+    });
+
+    return () => {
+      socket.off("chat message");
+    };
+  }, [socket]);
+
+  // Function to send a chat message
+  const handleSendMessage = () => {
+    if (!socket || !currentMessage.trim()) return;
+    socket.emit("chat message", currentMessage);
+    // Optionally, add your own message locally
+    setMessages((prevMessages) => [...prevMessages, currentMessage]);
+    setCurrentMessage("");
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
@@ -147,7 +189,6 @@ export default function DashboardPage() {
           {/* Chat Header */}
           <div className="flex justify-between items-center p-6 pr-24 border-b border-t border-[#FDB439]">
             <h2 className="text-[#FDB439] font-semibold text-xl">Chat Title</h2>
-
             <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
           </div>
 
@@ -158,14 +199,15 @@ export default function DashboardPage() {
                 <Menu />
               </div>
             )}
-
             <div className="p-6">
-              <div className="max-w-xs p-3 rounded-xl border border-[#FDB439] text-[#FDB439] text-lg">
-                Hello, how are you?
-              </div>
-              <div className="max-w-xs ml-auto bg-[#FDB439] text-white p-3 rounded-xl text-lg">
-                I am fine, thanks!
-              </div>
+              {messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className="max-w-xs p-3 rounded-xl border border-[#FDB439] text-[#FDB439] text-lg mb-2"
+                >
+                  {msg}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -175,8 +217,18 @@ export default function DashboardPage() {
               type="text"
               placeholder="Type a message..."
               className="flex-1 border border-[#FDB439] rounded p-3 text-[#FDB439] text-lg placeholder-[#FDB439] focus:outline-none"
+              value={currentMessage}
+              onChange={(e) => setCurrentMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSendMessage();
+                }
+              }}
             />
-            <button className="bg-[#FDB439] text-white px-6 py-3 rounded ml-2 hover:bg-opacity-90 text-lg">
+            <button
+              className="bg-[#FDB439] text-white px-6 py-3 rounded ml-2 hover:bg-opacity-90 text-lg"
+              onClick={handleSendMessage}
+            >
               Send
             </button>
           </div>
