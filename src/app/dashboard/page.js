@@ -31,8 +31,9 @@ export default function DashboardPage() {
   // Socket and chat states
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [conversationMessages, setConversationMessages] = useState([])
+  const [conversationMessages, setConversationMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
+  const [unreadMessages, setUnreadMessages] = useState([]);
 
   // Selected friend for private messaging
   const [selectedFriend, setSelectedFriend] = useState(null);
@@ -81,12 +82,12 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       // Filter out the current user
-      console.log(data)
+      console.log(data);
       const filteredFriends = data.users.filter(
         (user) => user._id !== userData._id
       );
-      setMessages(data?.messages)
-      console.log(filteredFriends)
+      setMessages(data?.messages);
+      console.log(filteredFriends);
       setFriends(filteredFriends);
     } catch (err) {
       console.error("Error fetching friends:", err);
@@ -119,15 +120,24 @@ export default function DashboardPage() {
   // --- Listen for incoming private messages ---
   useEffect(() => {
     if (!socket) return;
-    socket.on("privateMessage", (msg) => {
+
+    const handlePrivateMessage = (msg) => {
       // Add received message to local state
       setMessages((prevMessages) => [...prevMessages, msg]);
-      console.log(msg) // contains a sender id
-    });
-    return () => {
-      socket.off("privateMessage");
+
+      if (msg.senderId === selectedFriend._id) {
+        return;
+      }
+
+      setUnreadMessages((unreadMessages) => [...unreadMessages, msg]);
     };
-  }, [socket]);
+
+    socket.on("privateMessage", handlePrivateMessage);
+
+    return () => {
+      socket.off("privateMessage", handlePrivateMessage);
+    };
+  }, [socket, selectedFriend]); // Ensure dependencies are correctly listed
 
   // --- Handle sending a private message ---
   const handleSendMessage = () => {
@@ -151,40 +161,71 @@ export default function DashboardPage() {
     setCurrentMessage("");
   };
 
-
   useEffect(() => {
     const filteredMessages = messages
-      .filter(message => message.receiver && message.sender && message.text)
-    .map(message => {
-      if  (message.receiver?._id === selectedFriend?._id || message?.sender._id === selectedFriend?._id && message?.text) {
-        return message
-      }
-    })
-    setConversationMessages(filteredMessages)
-  }, [selectedFriend])
+      .filter((message) => message.receiver && message.sender && message.text)
+      .map((message) => {
+        if (
+          message.receiver?._id === selectedFriend?._id ||
+          (message?.sender._id === selectedFriend?._id && message?.text)
+        ) {
+          return message;
+        }
+      })
+      .filter(Boolean); // Remove undefined values that may arise from the `map`
+
+    // Set the filtered conversation messages
+    setConversationMessages(filteredMessages);
+
+    // Step 2: Check the unread messages array
+    // If the selected friend has sent unread messages, remove them
+    setUnreadMessages((prevUnread) => {
+      // Filter out messages where sender is the selected friend
+      const updatedUnread = prevUnread.filter(
+        (message) => message.senderId !== selectedFriend?._id
+      );
+
+      // Return the updated unread messages
+      return updatedUnread;
+    });
+    setConversationMessages(filteredMessages);
+    // check the unreadmessages array to see if it has any messages
+    // whose senderId is equal to the selectedfriend._id. if it has messages
+    // which are from the selected friend, remove those messages from
+    // the unread messages array
+  }, [selectedFriend]);
 
   useEffect(() => {
-    console.log("updating")
+    console.log("updating");
     const filteredMessages = messages
-      .filter(message => message.receiver && message.sender || message.receiverId && message.senderId && message.text)
-    .map(message => {
-      if  (message?.receiver?._id === selectedFriend?._id || message?.sender?._id === selectedFriend?._id 
-        
-          || message?.receiverId === selectedFriend?._id || message?.senderId === selectedFriend?._id
-        && message?.text) {
-        return message
-      }
-    })
-    setConversationMessages(filteredMessages)
-  }, [messages])
+      .filter(
+        (message) =>
+          (message.receiver && message.sender) ||
+          (message.receiverId && message.senderId && message.text)
+      )
+      .map((message) => {
+        if (
+          message?.receiver?._id === selectedFriend?._id ||
+          message?.sender?._id === selectedFriend?._id ||
+          message?.receiverId === selectedFriend?._id ||
+          (message?.senderId === selectedFriend?._id && message?.text)
+        ) {
+          return message;
+        }
+      });
+    setConversationMessages(filteredMessages);
+  }, [messages]);
 
   // --- Fetch unread messages from backend ---
   const fetchUnreadMessages = async (userId) => {
     try {
-      const res = await fetch(`http://localhost:3001/messages/unread/${userId}`, {
-        method: "GET",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `http://localhost:3001/messages/unread/${userId}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
       const data = await res.json();
       if (data.messages) {
         setMessages(data.messages);
@@ -214,18 +255,6 @@ export default function DashboardPage() {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
-  // Filter conversation messages for the selected friend
-  // const currentConversationMessages =
-  //   selectedFriend && userData
-  //     ? messages.filter(
-  //         (msg) =>
-  //           (msg.senderId === userData._id &&
-  //             msg.receiverId === selectedFriend._id) ||
-  //           (msg.senderId === selectedFriend._id &&
-  //             msg.receiverId === userData._id)
-  //       )
-  //     : [];
-
   return (
     <div className="relative flex flex-col w-screen h-screen bg-white">
       <Navbar />
@@ -245,7 +274,7 @@ export default function DashboardPage() {
                     onClick={() => {
                       setSelectedFriend(friend);
                       // setMessages(
-                        
+
                       // );
                     }}
                     className={`p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${
@@ -255,6 +284,13 @@ export default function DashboardPage() {
                     }`}
                   >
                     {friend.username}
+                    <span>
+                      {
+                        unreadMessages.filter(
+                          (msg) => msg.senderId === friend._id
+                        ).length
+                      }
+                    </span>
                   </div>
                 ))
               : searchResults.map((user) => (
@@ -290,18 +326,20 @@ export default function DashboardPage() {
               {selectedFriend ? (
                 conversationMessages?.length > 0 ? (
                   conversationMessages?.map((msg, index) => {
-                    if (!msg?.text) return null
-                    return (<div
-                      key={index}
-                      className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${
-                        msg?.sender?._id === userData?._id
-                          ? "ml-auto bg-[#6d7a8c] text-red-400"
-                          : "border border-[#363e4b] text-[#2D3748]"
-                      }`}
-                    >
-                      {msg?.text}
-                    </div>)
-})
+                    if (!msg?.text) return null;
+                    return (
+                      <div
+                        key={index}
+                        className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${
+                          msg?.sender?._id === userData?._id
+                            ? "ml-auto bg-[#6d7a8c] text-red-400"
+                            : "border border-[#363e4b] text-[#2D3748]"
+                        }`}
+                      >
+                        {msg?.text}
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="text-center text-gray-500">
                     No messages yet. Start the conversation!
