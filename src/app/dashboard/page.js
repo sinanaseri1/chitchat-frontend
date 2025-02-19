@@ -122,7 +122,7 @@ export default function DashboardPage() {
     socket.on("privateMessage", (msg) => {
       // Add received message to local state
       setMessages((prevMessages) => [...prevMessages, msg]);
-      console.log(msg)
+      console.log(msg) // contains a sender id
     });
     return () => {
       socket.off("privateMessage");
