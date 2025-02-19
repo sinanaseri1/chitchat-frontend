@@ -120,7 +120,6 @@ export default function DashboardPage() {
   // --- Listen for incoming private messages ---
   useEffect(() => {
     if (!socket) return;
-
     const handlePrivateMessage = (msg) => {
       // Add received message to local state
       setMessages((prevMessages) => [...prevMessages, msg]);
@@ -133,7 +132,6 @@ export default function DashboardPage() {
     };
 
     socket.on("privateMessage", handlePrivateMessage);
-
     return () => {
       socket.off("privateMessage", handlePrivateMessage);
     };
@@ -160,7 +158,6 @@ export default function DashboardPage() {
     ]);
     setCurrentMessage("");
   };
-
   useEffect(() => {
     const filteredMessages = messages
       .filter((message) => message.receiver && message.sender && message.text)
@@ -254,7 +251,6 @@ export default function DashboardPage() {
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
-
   return (
     <div className="relative flex flex-col w-screen h-screen bg-white">
       <Navbar />
@@ -315,42 +311,44 @@ export default function DashboardPage() {
             </h2>
             <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
           </div>
+          <div className="h-[calc(1%)] bg-orange-500/10 flex-1 overflow-y-auto">
 
-          <div className="flex-1 p-0 overflow-y-auto space-y-6 bg-white relative">
-            {menuOpen && (
-              <div className="flex justify-end">
-                <Menu />
-              </div>
-            )}
-            <div className="p-6">
-              {selectedFriend ? (
-                conversationMessages?.length > 0 ? (
-                  conversationMessages?.map((msg, index) => {
-                    if (!msg?.text) return null;
-                    return (
-                      <div
-                        key={index}
-                        className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${
-                          msg?.sender?._id === userData?._id
-                            ? "ml-auto bg-[#6d7a8c] text-red-400"
-                            : "border border-[#363e4b] text-[#2D3748]"
-                        }`}
-                      >
-                        {msg?.text}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center text-gray-500">
-                    No messages yet. Start the conversation!
-                  </div>
-                )
-              ) : (
-                <div className="text-center text-gray-500">
-                  Select a friend to start chatting.
+            <div className="p-0 overflow-y-auto space-y-6 bg-bg-white relative">
+              {menuOpen && (
+                <div className="flex justify-end">
+                  <Menu />
                 </div>
               )}
+
+              <div className="p-6">
+                {selectedFriend ? (
+                  conversationMessages?.length > 0 ? (
+                    conversationMessages?.map((msg, index) => {
+                      if (!msg?.text) return null
+                      return (<div
+                        key={index}
+                        className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${msg?.sender?._id === userData?._id
+                            ? "ml-auto bg-[#6d7a8c] text-red-400"
+                            : "border border-[#363e4b] text-[#2D3748]"
+                          }`}
+                      >
+                        {msg?.text}
+                      </div>)
+                    })
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No messages yet. Start the conversation!
+                    </div>
+                  )
+
+                ) : (
+                  <div className="text-center text-gray-500">
+                    Select a friend to start chatting.
+                  </div>
+                )}
+              </div>
             </div>
+
           </div>
 
           <div className="p-6 border-t border-[#FDB439] flex">
