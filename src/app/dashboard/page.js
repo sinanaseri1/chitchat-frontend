@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import io from "socket.io-client";
-
 import Navbar from "../../components/Navbar";
 import Hamburger from "@/components/dashboard/hamburger/Hamburger";
 import NewChatModal from "@/components/dashboard/NewChatModal";
@@ -32,6 +31,7 @@ export default function DashboardPage() {
   // Socket and chat states
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [conversationMessages, setConversationMessages] = useState([])
   const [currentMessage, setCurrentMessage] = useState("");
 
   // Selected friend for private messaging
@@ -46,15 +46,18 @@ export default function DashboardPage() {
       });
       if (response.ok) {
         const data = await response.json();
-        console.log("Validated user data:", data);
         setUserData(data);
         setLoading(false);
+
+        // Fetch unread messages after successful login
+        if (data._id) {
+          fetchUnreadMessages(data._id);
+        }
       } else {
         setError("User not authenticated");
         setLoading(false);
       }
     } catch (err) {
-      console.error("Error fetching dashboard data:", err);
       setError("Error fetching dashboard data");
       setLoading(false);
     }
@@ -70,7 +73,6 @@ export default function DashboardPage() {
   }, [router]);
 
   // --- Fetch friend list from backend ---
-  // This endpoint should return all users (with _id, username, email, etc.)
   const fetchFriends = async () => {
     try {
       const res = await fetch("http://localhost:3001/users?username=", {
@@ -78,12 +80,13 @@ export default function DashboardPage() {
         credentials: "include",
       });
       const data = await res.json();
-      console.log("Fetched friends:", data.users);
       // Filter out the current user
-      const filteredFriends =
-        userData && data.users
-          ? data.users.filter((user) => user._id !== userData._id)
-          : data.users;
+      console.log(data)
+      const filteredFriends = data.users.filter(
+        (user) => user._id !== userData._id
+      );
+      setMessages(data?.messages)
+      console.log(filteredFriends)
       setFriends(filteredFriends);
     } catch (err) {
       console.error("Error fetching friends:", err);
@@ -103,7 +106,6 @@ export default function DashboardPage() {
       transports: ["websocket"],
     });
     setSocket(newSocket);
-    console.log("Socket initialized with id:", newSocket.id);
     return () => newSocket.disconnect();
   }, []);
 
@@ -111,7 +113,6 @@ export default function DashboardPage() {
   useEffect(() => {
     if (socket && userData && userData._id) {
       socket.emit("register", userData._id);
-      console.log("Registered user with socket:", userData._id);
     }
   }, [socket, userData]);
 
@@ -119,8 +120,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!socket) return;
     socket.on("privateMessage", (msg) => {
-      console.log("Received private message:", msg);
+      // Add received message to local state
       setMessages((prevMessages) => [...prevMessages, msg]);
+      console.log(msg) // contains a sender id
     });
     return () => {
       socket.off("privateMessage");
@@ -131,27 +133,65 @@ export default function DashboardPage() {
   const handleSendMessage = () => {
     if (!socket || !currentMessage.trim() || !selectedFriend || !userData)
       return;
-    const senderId = userData._id; // Now properly set by /validate
+    const senderId = userData._id;
     const receiverId = selectedFriend._id;
-    console.log(
-      "Sending message from",
-      senderId,
-      "to",
-      receiverId,
-      ":",
-      currentMessage
-    );
+
+    // Send message to backend and socket
     socket.emit("privateMessage", {
       senderId,
       receiverId,
       text: currentMessage,
     });
-    // Optionally add the message locally for immediate display
+
+    // Optionally add message locally
     setMessages((prevMessages) => [
       ...prevMessages,
       { senderId, receiverId, text: currentMessage, createdAt: new Date() },
     ]);
     setCurrentMessage("");
+  };
+
+
+  useEffect(() => {
+    const filteredMessages = messages
+      .filter(message => message.receiver && message.sender && message.text)
+      .map(message => {
+        if (message.receiver?._id === selectedFriend?._id || message?.sender._id === selectedFriend?._id && message?.text) {
+          return message
+        }
+      })
+    setConversationMessages(filteredMessages)
+  }, [selectedFriend])
+
+  useEffect(() => {
+    console.log("updating")
+    const filteredMessages = messages
+      .filter(message => message.receiver && message.sender || message.receiverId && message.senderId && message.text)
+      .map(message => {
+        if (message?.receiver?._id === selectedFriend?._id || message?.sender?._id === selectedFriend?._id
+
+          || message?.receiverId === selectedFriend?._id || message?.senderId === selectedFriend?._id
+          && message?.text) {
+          return message
+        }
+      })
+    setConversationMessages(filteredMessages)
+  }, [messages])
+
+  // --- Fetch unread messages from backend ---
+  const fetchUnreadMessages = async (userId) => {
+    try {
+      const res = await fetch(`http://localhost:3001/messages/unread/${userId}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.messages) {
+        setMessages(data.messages);
+      }
+    } catch (err) {
+      console.error("Error fetching unread messages:", err);
+    }
   };
 
   // --- Handle search input changes ---
@@ -174,81 +214,64 @@ export default function DashboardPage() {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
-  // --- Filter conversation messages for the selected friend ---
-  const currentConversationMessages =
-    selectedFriend && userData
-      ? messages.filter(
-          (msg) =>
-            (msg.senderId === userData._id &&
-              msg.receiverId === selectedFriend._id) ||
-            (msg.senderId === selectedFriend._id &&
-              msg.receiverId === userData._id)
-        )
-      : [];
+  // Filter conversation messages for the selected friend
+  // const currentConversationMessages =
+  //   selectedFriend && userData
+  //     ? messages.filter(
+  //         (msg) =>
+  //           (msg.senderId === userData._id &&
+  //             msg.receiverId === selectedFriend._id) ||
+  //           (msg.senderId === selectedFriend._id &&
+  //             msg.receiverId === userData._id)
+  //       )
+  //     : [];
 
   return (
     <div className="relative flex flex-col w-screen h-screen bg-white">
-      {/* Top Navbar */}
       <Navbar />
-
-      {/* Main Content (Sidebar + Chat Area) */}
       <div className="flex flex-1">
-        {/* Sidebar */}
         <div className="w-80 border-r border-[#FDB439] p-6 flex flex-col justify-between">
-          {/* Top section: New Chat button and friend list */}
-          <div>
-            <button
-              className="w-full bg-[#FDB439] text-white py-3 rounded hover:bg-opacity-90 text-lg"
-              onClick={() => setShowNewChatModal(true)}
-            >
-              + New Group Chat
-            </button>
-            <div className="mt-6 overflow-y-auto space-y-3">
-              {searchTerm.trim() === ""
-                ? friends.map((friend) => (
-                    <div
-                      key={friend._id}
-                      onClick={() => {
-                        setSelectedFriend(friend);
-                        setMessages([]); // clear conversation when switching friends
-                      }}
-                      className={`p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${
-                        selectedFriend && selectedFriend._id === friend._id
-                          ? "bg-[#FDB439] text-white"
-                          : ""
-                      }`}
-                    >
-                      {friend.username}
-                    </div>
-                  ))
-                : searchResults.map((user) => (
-                    <div
-                      key={user._id}
-                      onClick={() => {
-                        setSelectedFriend(user);
-                        setMessages([]);
-                      }}
-                      className="p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg"
-                    >
-                      {user.username}
-                    </div>
-                  ))}
-            </div>
-          </div>
-          <div className="mt-6">
-            <input
-              type="text"
-              placeholder="Search user by username..."
-              className="w-full border border-[#FDB439] rounded p-3 text-[#FDB439] text-lg placeholder-[#FDB439] focus:outline-none"
-              value={searchTerm}
-              onChange={handleSearch}
-            />
+          <button
+            className="w-full bg-[#FDB439] text-white py-3 rounded hover:bg-opacity-90 text-lg"
+            onClick={() => setShowNewChatModal(true)}
+          >
+            + New Group Chat
+          </button>
+          <div className="mt-6 overflow-y-auto space-y-3">
+            {searchTerm.trim() === ""
+              ? friends.map((friend) => (
+                <div
+                  key={friend._id}
+                  onClick={() => {
+                    setSelectedFriend(friend);
+                    // setMessages(
+
+                    // );
+                  }}
+                  className={`p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${selectedFriend && selectedFriend._id === friend._id
+                      ? "bg-[#FDB439] text-white"
+                      : ""
+                    }`}
+                >
+                  {friend.username}
+                </div>
+              ))
+              : searchResults.map((user) => (
+                <div
+                  key={user._id}
+                  onClick={() => {
+                    setSelectedFriend(user);
+                    setMessages([]);
+                  }}
+                  className="p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg"
+                >
+                  {user.username}
+                </div>
+              ))}
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex flex-col flex-1">
-          {/* Chat Header */}
+        <div className="flex flex-col flex-1 h-[calc(100vh-88px)]">
           <div className="flex justify-between items-center p-6 pr-24 border-b border-t border-[#FDB439]">
             <h2 className="text-[#FDB439] font-semibold text-xl">
               {selectedFriend ? selectedFriend.username : "Select a Friend"}
@@ -256,42 +279,45 @@ export default function DashboardPage() {
             <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
           </div>
 
-          {/* Chat Messages */}
-          <div className="flex-1 p-0 overflow-y-auto space-y-6 bg-white relative">
-            {menuOpen && (
-              <div className="flex justify-end">
-                <Menu />
-              </div>
-            )}
-            <div className="p-6">
-              {selectedFriend ? (
-                currentConversationMessages.length > 0 ? (
-                  currentConversationMessages.map((msg, index) => (
-                    <div
-                      key={index}
-                      className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${
-                        msg.senderId === userData._id
-                          ? "ml-auto bg-[#FDB439] text-white"
-                          : "border border-[#FDB439] text-[#FDB439]"
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center text-gray-500">
-                    No messages yet. Start the conversation!
-                  </div>
-                )
-              ) : (
-                <div className="text-center text-gray-500">
-                  Select a friend to start chatting.
+          <div className="h-[calc(1%)] bg-orange-500/10 flex-1 overflow-y-auto">
+
+            <div className="p-0 overflow-y-auto space-y-6 bg-bg-white relative">
+              {menuOpen && (
+                <div className="flex justify-end">
+                  <Menu />
                 </div>
               )}
+
+              <div className="p-6">
+                {selectedFriend ? (
+                  conversationMessages?.length > 0 ? (
+                    conversationMessages?.map((msg, index) => {
+                      if (!msg?.text) return null
+                      return (<div
+                        key={index}
+                        className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${msg?.sender?._id === userData?._id
+                            ? "ml-auto bg-[#6d7a8c] text-red-400"
+                            : "border border-[#363e4b] text-[#2D3748]"
+                          }`}
+                      >
+                        {msg?.text}
+                      </div>)
+                    })
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No messages yet. Start the conversation!
+                    </div>
+                  )
+                ) : (
+                  <div className="text-center text-gray-500">
+                    Select a friend to start chatting.
+                  </div>
+                )}
+              </div>
             </div>
+
           </div>
 
-          {/* Chat Input */}
           <div className="p-6 border-t border-[#FDB439] flex">
             <input
               type="text"
@@ -315,7 +341,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* New Chat Modal */}
       {showNewChatModal && (
         <NewChatModal
           friends={friends}
