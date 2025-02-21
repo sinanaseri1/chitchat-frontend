@@ -8,11 +8,11 @@ const Stripe = ({ id, isActive }) => {
   let transformClasses = "";
   if (isActive) {
     if (id === 0) {
-      transformClasses = "translate-y-[8px] rotate-45";
+      transformClasses = "translate-y-[9px] rotate-45";
     } else if (id === 1) {
       transformClasses = "opacity-0";
     } else if (id === 2) {
-      transformClasses = "-translate-y-[8px] -rotate-45";
+      transformClasses = "-translate-y-[9px] -rotate-45";
     }
   }
 
