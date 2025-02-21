@@ -308,7 +308,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex flex-col flex-1">
+        {/** MESSAGING HEADER **/}
+        <div className="overflow-hidden flex flex-col flex-1">
           <div className="flex justify-between items-center p-6 pr-24 border-b border-t border-[#FDB439]">
             <h2 className="text-[#FDB439] font-semibold text-xl">
               {selectedFriend ? selectedFriend.username : "Select a Friend"}
@@ -316,13 +317,16 @@ export default function DashboardPage() {
             <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
           </div>
 
-          <div className="flex-1 p-0 overflow-y-auto space-y-6 bg-white relative">
+          {/** MENU DROPDOWN **/}
+          <div className="flex-1 p-0 overflow-y-auto bg-white relative">
             {menuOpen && (
               <div className="flex justify-end">
                 <Menu />
               </div>
             )}
-            <div className="p-6">
+
+            {/** MESSAGING - MESSAGES **/}
+            <div className="p-6 h-[calc(100vh-269px)] overflow-y-auto">
               {selectedFriend ? (
                 conversationMessages?.length > 0 ? (
                   conversationMessages?.map((msg, index) => {
@@ -353,6 +357,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/** MESSSAGING - INPUT TEXT **/}
           <div className="p-6 border-t border-[#FDB439] flex">
             <input
               type="text"
