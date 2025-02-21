@@ -5,11 +5,17 @@ export default {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: 'class',  // Added for dark mode support
   theme: {
     extend: {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        // Adding dark mode color variables
+        primary: {
+          DEFAULT: '#FDB439',
+          dark: '#2D3748',
+        },
       },
     },
   },

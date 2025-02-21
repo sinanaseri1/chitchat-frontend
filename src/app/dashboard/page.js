@@ -82,12 +82,10 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       // Filter out the current user
-      console.log(data);
       const filteredFriends = data.users.filter(
         (user) => user._id !== userData._id
       );
       setMessages(data?.messages);
-      console.log(filteredFriends);
       setFriends(filteredFriends);
     } catch (err) {
       console.error("Error fetching friends:", err);
@@ -137,7 +135,7 @@ export default function DashboardPage() {
     return () => {
       socket.off("privateMessage", handlePrivateMessage);
     };
-  }, [socket, selectedFriend]); // Ensure dependencies are correctly listed
+  }, [socket, selectedFriend]);
 
   // --- Handle sending a private message ---
   const handleSendMessage = () => {
@@ -188,15 +186,9 @@ export default function DashboardPage() {
       // Return the updated unread messages
       return updatedUnread;
     });
-    setConversationMessages(filteredMessages);
-    // check the unreadmessages array to see if it has any messages
-    // whose senderId is equal to the selectedfriend._id. if it has messages
-    // which are from the selected friend, remove those messages from
-    // the unread messages array
   }, [selectedFriend]);
 
   useEffect(() => {
-    console.log("updating");
     const filteredMessages = messages
       .filter(
         (message) =>
@@ -273,9 +265,6 @@ export default function DashboardPage() {
                     key={friend._id}
                     onClick={() => {
                       setSelectedFriend(friend);
-                      // setMessages(
-
-                      // );
                     }}
                     className={`p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${
                       selectedFriend && selectedFriend._id === friend._id
@@ -283,14 +272,24 @@ export default function DashboardPage() {
                         : ""
                     }`}
                   >
-                    {friend.username}
-                    <span>
-                      {
-                        unreadMessages.filter(
-                          (msg) => msg.senderId === friend._id
-                        ).length
-                      }
-                    </span>
+                    <div className="flex justify-between items-center">
+                      <span>{friend.username}</span>
+                      <span
+                        className={`${
+                          unreadMessages.filter(
+                            (msg) => msg.senderId === friend._id
+                          ).length > 0
+                            ? "bg-red-500 text-white"
+                            : "bg-transparent text-transparent"
+                        } text-sm rounded-full px-2 py-1 ml-2`}
+                      >
+                        {
+                          unreadMessages.filter(
+                            (msg) => msg.senderId === friend._id
+                          ).length
+                        }
+                      </span>
+                    </div>
                   </div>
                 ))
               : searchResults.map((user) => (
@@ -336,7 +335,7 @@ export default function DashboardPage() {
                         key={index}
                         className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${
                           msg?.sender?._id === userData?._id
-                            ? "ml-auto bg-[#6d7a8c] text-red-400"
+                            ? "ml-auto bg-[#FDB439] text-white"
                             : "border border-[#363e4b] text-[#2D3748]"
                         }`}
                       >
