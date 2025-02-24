@@ -85,6 +85,7 @@ function Navbar() {
         <img src="/logo.png" alt="Chit Chat Logo" className="h-14 w-auto" />
       </div>
       <div className="ml-auto flex items-center space-x-6 mr-12">
+        {/* Dark mode toggle */}
         <button
           onClick={toggleDarkMode}
           className="text-white p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -92,6 +93,7 @@ function Navbar() {
           {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
         </button>
 
+        {/* Logout button */}
         <button
           onClick={handleLogout}
           className="text-white font-semibold text-lg hover:underline"
@@ -99,6 +101,7 @@ function Navbar() {
           Logout
         </button>
 
+        {/* My Account Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -123,6 +126,7 @@ function Navbar() {
           )}
         </div>
 
+        {/* Delete Account Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-1/3">
@@ -147,6 +151,7 @@ function Navbar() {
           </div>
         )}
 
+        {/* Greeting */}
         <div className="text-right">
           <div className="text-white text-sm">Welcome back</div>
           <span className="text-[#2D3748] dark:text-white text-2xl font-semibold">
