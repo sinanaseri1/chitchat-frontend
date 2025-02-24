@@ -314,14 +314,14 @@ export default function DashboardPage() {
             <h2 className="text-[#FDB439] font-semibold text-xl">
               {selectedFriend ? selectedFriend.username : "Select a Friend"}
             </h2>
-            <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+              <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
           </div>
 
           {/** MENU DROPDOWN **/}
           <div className="flex-1 p-0 overflow-y-auto bg-white relative">
             {menuOpen && (
               <div className="flex justify-end">
-                <Menu />
+                  <Menu selectedFriend={selectedFriend}/>
               </div>
             )}
 
