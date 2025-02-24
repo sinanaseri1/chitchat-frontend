@@ -1,33 +1,34 @@
-import React from 'react'
-import ListItem from './ListItem'
+import React from 'react';
+import ListItem from './ListItem';
 import { useRouter } from "next/navigation";
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from 'next/cache';
+
+// Define the backend URL using an environment variable with fallback
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 const Menu = ({ selectedFriend }) => {
-
-
-const router = useRouter();
+  const router = useRouter();
 
   const deleteHistory = async () => {
-
-    if (selectedFriend == null) {
-      alert('No Chat Selected')
-      return
+    if (!selectedFriend) {
+      alert('No Chat Selected');
+      return;
     }
     
-    const response = await fetch(`http://localhost:3001/messages/delete/${selectedFriend._id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    })
-    .then(response => response.json())
-    .then(data => console.log(data))
-
-    //reget messages instead of refreshing?
-    router.push("/dashboard")
-    
-    //console.log(selectedFriend)
-    
-  }
+    try {
+      const response = await fetch(`${BASE_URL}/messages/delete/${selectedFriend._id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await response.json();
+      console.log(data);
+      
+      // Redirect back to the dashboard (or re-fetch messages if needed)
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error deleting history:", error);
+    }
+  };
 
   return (
     <div
@@ -37,13 +38,13 @@ const router = useRouter();
       <ul>
         <ListItem name="Delete History" onClick={deleteHistory} />
         {/*
-        <ListItem name='Add User' />
-        <ListItem name='Delete User' />
-        <ListItem name='Block User' />
+          <ListItem name='Add User' />
+          <ListItem name='Delete User' />
+          <ListItem name='Block User' />
         */}
       </ul>
     </div>
-  )
-}
+  );
+};
 
-export default Menu
+export default Menu;

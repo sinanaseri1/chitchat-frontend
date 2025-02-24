@@ -1,9 +1,11 @@
-
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+
+// Define the backend URL using an environment variable with fallback
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 const Login = () => {
   const [disabled, setDisabled] = useState(false);
@@ -20,7 +22,7 @@ const Login = () => {
 
     try {
       // Send the login request to the backend via an API call
-      const response = await fetch("http://localhost:3001/login", {
+      const response = await fetch(`${BASE_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json", // Make sure to send JSON
@@ -48,7 +50,7 @@ const Login = () => {
         setDisabled(false); // Re-enable the button
       }
     } catch (error) {
-      console.error("Please enter correct username and password:", error);
+      console.error("Login error:", error);
       setErrorMessage("Please enter correct username and password.");
       setDisabled(false); // Re-enable the button on error
     }

@@ -1,9 +1,11 @@
-
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation"; // Import useRouter hook
 import Image from "next/image"; // Import Next.js Image component
 import Link from "next/link"; // Import Next.js Link component
+
+// Define the backend URL using an environment variable with fallback
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 const Signup = () => {
   const [disabled, setDisabled] = useState(false);
@@ -34,7 +36,7 @@ const Signup = () => {
 
     try {
       // Make API call to register the user
-      const response = await fetch("http://localhost:3001/signup", {
+      const response = await fetch(`${BASE_URL}/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

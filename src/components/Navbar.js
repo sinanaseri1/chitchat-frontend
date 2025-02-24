@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, Sun, Moon } from "lucide-react";
 
+// Define BASE_URL using environment variable with fallback
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
+
 function Navbar() {
   const router = useRouter();
   const [username, setUsername] = useState("Guest");
@@ -14,7 +17,7 @@ function Navbar() {
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const response = await fetch("http://localhost:3001/validate", {
+        const response = await fetch(`${BASE_URL}/validate`, {
           method: "GET",
           credentials: "include",
         });
@@ -54,7 +57,7 @@ function Navbar() {
 
   const handleDeleteAccount = async () => {
     try {
-      const response = await fetch("http://localhost:3001/delete-account", {
+      const response = await fetch(`${BASE_URL}/delete-account`, {
         method: "DELETE",
         credentials: "include",
       });

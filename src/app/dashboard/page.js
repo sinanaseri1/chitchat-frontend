@@ -11,6 +11,9 @@ import Menu from "@/components/dashboard/hamburger/Menu/Menu";
 // Import the search function for username
 import { searchUsersByUsername } from "@/services/searchService";
 
+// Define BASE_URL using environment variable with fallback
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -41,7 +44,7 @@ export default function DashboardPage() {
   // --- Fetch authenticated user via /validate ---
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch("http://localhost:3001/validate", {
+      const response = await fetch(`${BASE_URL}/validate`, {
         method: "GET",
         credentials: "include",
       });
@@ -76,7 +79,7 @@ export default function DashboardPage() {
   // --- Fetch friend list from backend ---
   const fetchFriends = async () => {
     try {
-      const res = await fetch("http://localhost:3001/users?username=", {
+      const res = await fetch(`${BASE_URL}/users?username=`, {
         method: "GET",
         credentials: "include",
       });
@@ -100,7 +103,7 @@ export default function DashboardPage() {
 
   // --- Initialize Socket.IO ---
   useEffect(() => {
-    const newSocket = io("http://localhost:3001", {
+    const newSocket = io(BASE_URL, {
       withCredentials: true,
       transports: ["websocket"],
     });
@@ -211,7 +214,7 @@ export default function DashboardPage() {
   // --- Fetch unread messages from backend ---
   const fetchUnreadMessages = async (userId) => {
     try {
-      const res = await fetch(`http://localhost:3001/messages/unread/${userId}`, {
+      const res = await fetch(`${BASE_URL}/messages/unread/${userId}`, {
         method: "GET",
         credentials: "include",
       });
@@ -260,7 +263,7 @@ export default function DashboardPage() {
             + New Group Chat
           </button>
 
-          {/* Search input for filtering users (optional) */}
+          {/* Search input for filtering users */}
           <div className="mt-3">
             <input
               type="text"
@@ -329,14 +332,14 @@ export default function DashboardPage() {
             <h2 className="font-semibold text-xl">
               {selectedFriend ? selectedFriend.username : "Select a Friend"}
             </h2>
-              <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+            <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
           </div>
 
           {/* Menu Dropdown */}
           <div className="flex-1 p-0 overflow-y-auto bg-white dark:bg-[#2D3748] relative">
             {menuOpen && (
               <div className="flex justify-end">
-                  <Menu selectedFriend={selectedFriend}/>
+                <Menu />
               </div>
             )}
 
