@@ -82,12 +82,10 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       // Filter out the current user
-      console.log(data);
       const filteredFriends = data.users.filter(
         (user) => user._id !== userData._id
       );
       setMessages(data?.messages);
-      console.log(filteredFriends);
       setFriends(filteredFriends);
     } catch (err) {
       console.error("Error fetching friends:", err);
@@ -125,11 +123,11 @@ export default function DashboardPage() {
       // Add received message to local state
       setMessages((prevMessages) => [...prevMessages, msg]);
 
-      if (msg.senderId === selectedFriend._id) {
+      if (msg.senderId === selectedFriend?._id) {
         return;
       }
 
-      setUnreadMessages((unreadMessages) => [...unreadMessages, msg]);
+      setUnreadMessages((unread) => [...unread, msg]);
     };
 
     socket.on("privateMessage", handlePrivateMessage);
@@ -137,7 +135,7 @@ export default function DashboardPage() {
     return () => {
       socket.off("privateMessage", handlePrivateMessage);
     };
-  }, [socket, selectedFriend]); // Ensure dependencies are correctly listed
+  }, [socket, selectedFriend]);
 
   // --- Handle sending a private message ---
   const handleSendMessage = () => {
@@ -154,49 +152,42 @@ export default function DashboardPage() {
     });
 
     // Optionally add message locally
-    setMessages((prevMessages) => [
-      ...prevMessages,
+    setMessages((prev) => [
+      ...prev,
       { senderId, receiverId, text: currentMessage, createdAt: new Date() },
     ]);
     setCurrentMessage("");
   };
 
+  // --- Filter conversation messages & clear unread for selected friend ---
   useEffect(() => {
     const filteredMessages = messages
       .filter((message) => message.receiver && message.sender && message.text)
       .map((message) => {
         if (
           message.receiver?._id === selectedFriend?._id ||
-          (message?.sender._id === selectedFriend?._id && message?.text)
+          message.sender?._id === selectedFriend?._id
         ) {
           return message;
         }
       })
-      .filter(Boolean); // Remove undefined values that may arise from the `map`
+      .filter(Boolean);
 
-    // Set the filtered conversation messages
     setConversationMessages(filteredMessages);
 
-    // Step 2: Check the unread messages array
-    // If the selected friend has sent unread messages, remove them
     setUnreadMessages((prevUnread) => {
-      // Filter out messages where sender is the selected friend
+      // remove messages from unread if they’re from the selected friend
       const updatedUnread = prevUnread.filter(
-        (message) => message.senderId !== selectedFriend?._id
+        (msg) => msg.senderId !== selectedFriend?._id
       );
-
-      // Return the updated unread messages
       return updatedUnread;
     });
-    setConversationMessages(filteredMessages);
-    // check the unreadmessages array to see if it has any messages
-    // whose senderId is equal to the selectedfriend._id. if it has messages
-    // which are from the selected friend, remove those messages from
-    // the unread messages array
   }, [selectedFriend]);
 
+  // --- Re-check messages array to keep conversationMessages in sync ---
   useEffect(() => {
-    console.log("updating");
+    if (!selectedFriend) return;
+
     const filteredMessages = messages
       .filter(
         (message) =>
@@ -213,19 +204,17 @@ export default function DashboardPage() {
           return message;
         }
       });
+
     setConversationMessages(filteredMessages);
   }, [messages]);
 
   // --- Fetch unread messages from backend ---
   const fetchUnreadMessages = async (userId) => {
     try {
-      const res = await fetch(
-        `http://localhost:3001/messages/unread/${userId}`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch(`http://localhost:3001/messages/unread/${userId}`, {
+        method: "GET",
+        credentials: "include",
+      });
       const data = await res.json();
       if (data.messages) {
         setMessages(data.messages);
@@ -235,7 +224,7 @@ export default function DashboardPage() {
     }
   };
 
-  // --- Handle search input changes ---
+  // --- Handle search ---
   const handleSearch = async (e) => {
     const value = e.target.value;
     setSearchTerm(value);
@@ -256,16 +245,34 @@ export default function DashboardPage() {
   if (error) return <div>{error}</div>;
 
   return (
-    <div className="relative flex flex-col w-screen h-screen bg-white">
+    <div className="relative flex flex-col w-screen h-screen bg-white dark:bg-[#2D3748] text-[#2D3748] dark:text-gray-100">
+      {/* Navbar */}
       <Navbar />
+
+      {/* Main Container */}
       <div className="flex flex-1">
-        <div className="w-80 border-r border-[#FDB439] p-6 flex flex-col justify-between">
+        {/* Friend List */}
+        <div className="w-80 border-r border-[#FDB439] dark:border-[#FDB439] p-6 flex flex-col justify-between">
           <button
             className="w-full bg-[#FDB439] text-white py-3 rounded hover:bg-opacity-90 text-lg"
             onClick={() => setShowNewChatModal(true)}
           >
             + New Group Chat
           </button>
+
+          {/* Search input for filtering users (optional) */}
+          <div className="mt-3">
+            <input
+              type="text"
+              placeholder="Search user..."
+              className="w-full rounded p-2 border border-[#FDB439] dark:border-[#FDB439] 
+                         placeholder-gray-500 dark:placeholder-gray-300
+                         bg-white dark:bg-transparent focus:outline-none text-[#2D3748] dark:text-gray-100"
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+          </div>
+
           <div className="mt-6 overflow-y-auto space-y-3">
             {searchTerm.trim() === ""
               ? friends.map((friend) => (
@@ -273,24 +280,31 @@ export default function DashboardPage() {
                     key={friend._id}
                     onClick={() => {
                       setSelectedFriend(friend);
-                      // setMessages(
-
-                      // );
                     }}
-                    className={`p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${
+                    className={`p-3 border border-[#FDB439] dark:border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg ${
                       selectedFriend && selectedFriend._id === friend._id
                         ? "bg-[#FDB439] text-white"
-                        : ""
+                        : "bg-transparent dark:bg-transparent"
                     }`}
                   >
-                    {friend.username}
-                    <span>
-                      {
-                        unreadMessages.filter(
-                          (msg) => msg.senderId === friend._id
-                        ).length
-                      }
-                    </span>
+                    <div className="flex justify-between items-center">
+                      <span>{friend.username}</span>
+                      <span
+                        className={`${
+                          unreadMessages.filter(
+                            (msg) => msg.senderId === friend._id
+                          ).length > 0
+                            ? "bg-red-500 text-white"
+                            : "bg-transparent text-transparent"
+                        } text-sm rounded-full px-2 py-1 ml-2`}
+                      >
+                        {
+                          unreadMessages.filter(
+                            (msg) => msg.senderId === friend._id
+                          ).length
+                        }
+                      </span>
+                    </div>
                   </div>
                 ))
               : searchResults.map((user) => (
@@ -300,7 +314,7 @@ export default function DashboardPage() {
                       setSelectedFriend(user);
                       setMessages([]);
                     }}
-                    className="p-3 border border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg"
+                    className="p-3 border border-[#FDB439] dark:border-[#FDB439] rounded cursor-pointer hover:bg-[#FDB439] hover:text-white text-lg"
                   >
                     {user.username}
                   </div>
@@ -308,61 +322,67 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/** MESSAGING HEADER **/}
+        {/* Chat Section */}
         <div className="overflow-hidden flex flex-col flex-1">
-          <div className="flex justify-between items-center p-6 pr-24 border-b border-t border-[#FDB439]">
-            <h2 className="text-[#FDB439] font-semibold text-xl">
+          {/* Header */}
+          <div className="flex justify-between items-center p-6 pr-24 border-b border-t border-[#FDB439] dark:border-[#FDB439]">
+            <h2 className="font-semibold text-xl">
               {selectedFriend ? selectedFriend.username : "Select a Friend"}
             </h2>
             <Hamburger menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
           </div>
 
-          {/** MENU DROPDOWN **/}
-          <div className="flex-1 p-0 overflow-y-auto bg-white relative">
+          {/* Menu Dropdown */}
+          <div className="flex-1 p-0 overflow-y-auto bg-white dark:bg-[#2D3748] relative">
             {menuOpen && (
               <div className="flex justify-end">
                 <Menu />
               </div>
             )}
 
-            {/** MESSAGING - MESSAGES **/}
+            {/* Messages */}
             <div className="p-6 h-[calc(100vh-269px)] overflow-y-auto">
               {selectedFriend ? (
                 conversationMessages?.length > 0 ? (
-                  conversationMessages?.map((msg, index) => {
+                  conversationMessages.map((msg, index) => {
                     if (!msg?.text) return null;
+                    const isUserMessage = msg?.sender?._id === userData?._id;
+
                     return (
                       <div
                         key={index}
                         className={`max-w-xs p-3 rounded-xl text-lg mb-2 ${
-                          msg?.sender?._id === userData?._id
-                            ? "ml-auto bg-[#6d7a8c] text-red-400"
-                            : "border border-[#363e4b] text-[#2D3748]"
+                          isUserMessage
+                            ? "ml-auto bg-[#FDB439] text-white"
+                            : "border border-[#363e4b] dark:border-gray-200 text-[#2D3748] dark:text-gray-100"
                         }`}
                       >
-                        {msg?.text}
+                        {msg.text}
                       </div>
                     );
                   })
                 ) : (
-                  <div className="text-center text-gray-500">
+                  <div className="text-center text-gray-500 dark:text-gray-300">
                     No messages yet. Start the conversation!
                   </div>
                 )
               ) : (
-                <div className="text-center text-gray-500">
+                <div className="text-center text-gray-500 dark:text-gray-300">
                   Select a friend to start chatting.
                 </div>
               )}
             </div>
           </div>
 
-          {/** MESSSAGING - INPUT TEXT **/}
-          <div className="p-6 border-t border-[#FDB439] flex">
+          {/* Input Box */}
+          <div className="p-6 border-t border-[#FDB439] dark:border-[#FDB439] flex">
             <input
               type="text"
               placeholder="Type a message..."
-              className="flex-1 border border-[#FDB439] rounded p-3 text-[#FDB439] text-lg placeholder-[#FDB439] focus:outline-none"
+              className="flex-1 border border-[#FDB439] dark:border-[#FDB439] 
+                         rounded p-3 text-[#FDB439] dark:text-[#FDB439] text-lg 
+                         placeholder-[#FDB439] dark:placeholder-[#FDB439] 
+                         bg-white dark:bg-transparent focus:outline-none"
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
               onKeyDown={(e) => {

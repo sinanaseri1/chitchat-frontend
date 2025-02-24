@@ -44,12 +44,12 @@ const Login = () => {
       } else {
         // Handle failed login attempts
         console.error("Login failed:", data.message);
-        setErrorMessage(data.message || "Invalid credentials.");
+        setErrorMessage(data.message || "Please enter correct username and password.");
         setDisabled(false); // Re-enable the button
       }
     } catch (error) {
-      console.error("An error occurred while logging in:", error);
-      setErrorMessage("An error occurred during login. Please try again.");
+      console.error("Please enter correct username and password:", error);
+      setErrorMessage("Please enter correct username and password.");
       setDisabled(false); // Re-enable the button on error
     }
   };
