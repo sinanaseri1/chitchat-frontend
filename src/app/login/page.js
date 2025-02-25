@@ -3,56 +3,53 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { isMobile } from "../utils/isMobile"; // Utility function to detect mobile
 
-// Define the backend URL using an environment variable with fallback
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 const Login = () => {
   const [disabled, setDisabled] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(null); // For error handling
+  const [errorMessage, setErrorMessage] = useState(null);
   const router = useRouter();
 
   const submitHandler = async (e) => {
-    e.preventDefault(); // Prevent page reload on form submit
-    setDisabled(true); // Disable the button while submitting
-    setErrorMessage(null); // Reset any previous error message
+    e.preventDefault();
+    setDisabled(true);
+    setErrorMessage(null);
 
-    const usernameOrEmail = e.target.usernameOrEmail.value; // Get the input value (either username or email)
+    const usernameOrEmail = e.target.usernameOrEmail.value;
     const password = e.target.password.value;
+    const mobileCheck = isMobile(navigator.userAgent); // Detect mobile
 
     try {
-      // Send the login request to the backend via an API call
       const response = await fetch(`${BASE_URL}/login`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json", // Make sure to send JSON
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ usernameOrEmail, password }), // Send the form data
-        credentials: "include", // Ensure cookies are sent with the request
+        body: JSON.stringify({
+          usernameOrEmail,
+          password,
+          isMobile: mobileCheck,
+        }),
+        credentials: "include",
       });
 
-      const data = await response.json(); // Expecting a token or success message
-
-      // If the login was successful (status 200), handle the response
+      const data = await response.json();
+      console.log(data);
       if (response.ok) {
-        // Store the token securely (localStorage for this example)
-        localStorage.setItem("authToken", data.token); // Store token in localStorage (or cookie)
-        
-        // Store the username
-        localStorage.setItem("username", usernameOrEmail); // Store username in localStorage
-
-        // Redirect to the dashboard after successful login
+        if (mobileCheck) {
+          localStorage.setItem("authToken", data.token); // Store token for mobile users
+        }
+        localStorage.setItem("username", usernameOrEmail);
         router.push("/dashboard");
       } else {
-        // Handle failed login attempts
-        console.error("Login failed:", data.message);
-        setErrorMessage(data.message || "Please enter correct username and password.");
-        setDisabled(false); // Re-enable the button
+        setErrorMessage(data.message || "Invalid username or password.");
+        setDisabled(false);
       }
     } catch (error) {
-      console.error("Login error:", error);
-      setErrorMessage("Please enter correct username and password.");
-      setDisabled(false); // Re-enable the button on error
+      setErrorMessage("Login error. Please try again.");
+      setDisabled(false);
     }
   };
 
@@ -66,7 +63,6 @@ const Login = () => {
           height={200}
           className="mb-6"
         />
-
         <form
           onSubmit={submitHandler}
           className="bg-white p-8 rounded-lg shadow-lg w-96 max-w-md flex flex-col items-center"
@@ -74,12 +70,7 @@ const Login = () => {
           <h2 className="text-2xl font-bold text-center text-[#333333] mb-6">
             Lets ChitChat!
           </h2>
-
           <div className="mb-4 w-full">
-            <label
-              htmlFor="usernameOrEmail"
-              className="block text-[#333333] text-lg font-medium mb-2"
-            ></label>
             <input
               id="usernameOrEmail"
               name="usernameOrEmail"
@@ -89,12 +80,7 @@ const Login = () => {
               placeholder="Enter your username or email"
             />
           </div>
-
           <div className="mb-6 w-full">
-            <label
-              htmlFor="password"
-              className="block text-[#333333] text-lg font-medium mb-2"
-            ></label>
             <input
               id="password"
               name="password"
@@ -104,12 +90,9 @@ const Login = () => {
               placeholder="Enter your password"
             />
           </div>
-
-          {/* Display error message if login fails */}
           {errorMessage && (
             <div className="text-red-600 text-sm mb-4">{errorMessage}</div>
           )}
-
           <button
             type="submit"
             disabled={disabled}
@@ -119,7 +102,6 @@ const Login = () => {
           >
             {disabled ? "Signing in..." : "Sign in"}
           </button>
-
           <div className="mt-4 text-center">
             <Link
               href="/signup"
