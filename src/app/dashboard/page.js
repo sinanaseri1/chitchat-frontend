@@ -179,7 +179,7 @@ export default function DashboardPage() {
     setConversationMessages(filteredMessages);
 
     setUnreadMessages((prevUnread) => {
-      // remove messages from unread if they’re from the selected friend
+      // Remove messages from unread if they’re from the selected friend
       const updatedUnread = prevUnread.filter(
         (msg) => msg.senderId !== selectedFriend?._id
       );
@@ -221,7 +221,6 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.messages) {
         setMessages(data.messages);
-        //setConversationMessages(data.messages);
       }
     } catch (err) {
       console.error("Error fetching unread messages:", err);
@@ -256,16 +255,15 @@ export default function DashboardPage() {
       {/* Main Container */}
       <div className="flex flex-1">
         {/* Friend List */}
-        <div className="w-80 border-r border-t border-[#FDB439] dark:border-[#FDB439] p-6 flex flex-col justify-between">
-          <button
-            className="w-full bg-[#FDB439] text-white py-3 rounded hover:bg-opacity-90 text-lg"
-            onClick={() => setShowNewChatModal(true)}
-          >
-            + New Group Chat
-          </button>
-
-          {/* Search input for filtering users */}
-          <div className="mt-3">
+        <div className="w-80 border-r border-t border-[#FDB439] dark:border-[#FDB439] p-6 flex flex-col">
+          {/* Top Section: New Group Chat and Search Input */}
+          <div className="space-y-3">
+            <button
+              className="w-full bg-[#FDB439] text-white py-3 rounded hover:bg-opacity-90 text-lg"
+              onClick={() => setShowNewChatModal(true)}
+            >
+              + New Group Chat
+            </button>
             <input
               type="text"
               placeholder="Search user..."
@@ -276,8 +274,8 @@ export default function DashboardPage() {
               onChange={handleSearch}
             />
           </div>
-
-          <div className="mt-6 overflow-y-auto space-y-3">
+          {/* Friend List or Search Results */}
+          <div className="mt-6 flex-1 overflow-y-auto space-y-3">
             {searchTerm.trim() === ""
               ? friends.map((friend) => (
                   <div
@@ -349,7 +347,8 @@ export default function DashboardPage() {
               {selectedFriend ? (
                 conversationMessages?.length > 0 ? (
                   conversationMessages.map((m, index) => {
-                    const msg = conversationMessages[conversationMessages.length - 1 - index]
+                    const msg =
+                      conversationMessages[conversationMessages.length - 1 - index];
                     if (!msg?.text) return null;
                     const isUserMessage = msg?.sender?._id === userData?._id;
 
