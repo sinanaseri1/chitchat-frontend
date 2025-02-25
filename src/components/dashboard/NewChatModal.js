@@ -37,15 +37,15 @@ const NewChatModal = ({ onClose, friends }) => {
         <h2 className="text-2xl font-bold mb-4">Start a New Chat</h2>
         <div className="max-h-60 overflow-y-auto mb-4">
           {friends.map((friend) => (
-            <div key={friend.id} className="flex items-center mb-2">
+            <div key={friend._id} className="flex items-center mb-2">
               <input
                 type="checkbox"
                 id={`friend-${friend.id}`}
-                checked={selectedFriends.includes(friend.id)}
-                onChange={() => toggleFriend(friend.id)}
+                checked={selectedFriends.includes(friend._id)}
+                onChange={() => toggleFriend(friend._id)}
                 className="mr-2"
               />
-              <label htmlFor={`friend-${friend.id}`} className="text-gray-800">
+              <label htmlFor={`friend-${friend._id}`} className="text-gray-800">
                 {friend.name}
               </label>
             </div>

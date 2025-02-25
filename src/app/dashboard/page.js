@@ -221,6 +221,7 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.messages) {
         setMessages(data.messages);
+        //setConversationMessages(data.messages);
       }
     } catch (err) {
       console.error("Error fetching unread messages:", err);
@@ -255,7 +256,7 @@ export default function DashboardPage() {
       {/* Main Container */}
       <div className="flex flex-1">
         {/* Friend List */}
-        <div className="w-80 border-r border-[#FDB439] dark:border-[#FDB439] p-6 flex flex-col justify-between">
+        <div className="w-80 border-r border-t border-[#FDB439] dark:border-[#FDB439] p-6 flex flex-col justify-between">
           <button
             className="w-full bg-[#FDB439] text-white py-3 rounded hover:bg-opacity-90 text-lg"
             onClick={() => setShowNewChatModal(true)}
@@ -328,7 +329,7 @@ export default function DashboardPage() {
         {/* Chat Section */}
         <div className="overflow-hidden flex flex-col flex-1">
           {/* Header */}
-          <div className="flex justify-between items-center p-6 pr-24 border-b border-t border-[#FDB439] dark:border-[#FDB439]">
+          <div className="flex justify-between items-center p-6 pr-0 border-b border-t border-[#FDB439] dark:border-[#FDB439]">
             <h2 className="font-semibold text-xl">
               {selectedFriend ? selectedFriend.username : "Select a Friend"}
             </h2>
@@ -347,7 +348,8 @@ export default function DashboardPage() {
             <div className="p-6 h-[calc(100vh-269px)] overflow-y-auto">
               {selectedFriend ? (
                 conversationMessages?.length > 0 ? (
-                  conversationMessages.map((msg, index) => {
+                  conversationMessages.map((m, index) => {
+                    const msg = conversationMessages[conversationMessages.length - 1 - index]
                     if (!msg?.text) return null;
                     const isUserMessage = msg?.sender?._id === userData?._id;
 

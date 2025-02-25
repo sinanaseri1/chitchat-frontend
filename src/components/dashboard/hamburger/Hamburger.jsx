@@ -7,7 +7,7 @@ function Hamburger({ menuOpen, setMenuOpen }) {
   };
 
   return (
-    <button className="flex flex-col gap-[5px] mr-10" onClick={handleClick}>
+    <button className="flex flex-col gap-[5px] mr-12" onClick={handleClick}>
       {/* Pass an id and "isActive" to each Stripe */}
       <Stripe id={0} isActive={menuOpen} />
       <Stripe id={1} isActive={menuOpen} />
