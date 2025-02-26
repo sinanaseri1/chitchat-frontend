@@ -338,7 +338,7 @@ export default function DashboardPage() {
           <div className="flex-1 p-0 overflow-y-auto bg-white dark:bg-[#2D3748] relative">
             {menuOpen && (
               <div className="flex justify-end">
-                <Menu />
+                <Menu selectedFriend={selectedFriend} />
               </div>
             )}
 
