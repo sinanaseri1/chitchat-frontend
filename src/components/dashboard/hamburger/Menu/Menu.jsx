@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react';
 import ListItem from './ListItem';
 import { useRouter } from "next/navigation";
@@ -6,10 +8,12 @@ import { revalidatePath } from 'next/cache';
 // Define the backend URL using an environment variable with fallback
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
-const Menu = ({ selectedFriend }) => {
+const Menu = ({ selectedFriend}) => {
+
   const router = useRouter();
 
   const deleteHistory = async () => {
+
     if (!selectedFriend) {
       alert('No Chat Selected');
       return;
